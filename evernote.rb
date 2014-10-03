@@ -33,7 +33,7 @@ class Note
   end
 
   def self.all
-    @@notes
+    @@notes.select {|note| !note.deleted}
   end
 
 end
@@ -78,7 +78,6 @@ def delete_note
 end
 
 def update_note
-  note = Note.new()
   while (line = gets.chomp) != "</note>"
     input = parse_line(line)
     case input[:tag]
@@ -136,8 +135,7 @@ def tag_prefix_search(search_term)
 end
 
 def tag_exact_search(search_term)
-  "Search for tags matching #{search_term}"
-  []
+  Note.all.select {|note| note.tags.include?(search_term)}
 end
 
 def created_date_search(search_term)
