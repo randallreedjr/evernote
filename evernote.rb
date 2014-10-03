@@ -1,4 +1,4 @@
-require 'pry'
+#require 'pry'
 
 class Note
   attr_accessor :guid, :created, :tags, :content, :deleted
@@ -30,21 +30,21 @@ def create_note
     input = parse_line(line)
     case input[:tag]
     when "<note>"
-      puts "Note created"
+      #puts "Note created"
     when "<guid>"
       note.guid = input[:content]
-      puts "GUID added"
+      #puts "GUID added"
     when "<created>"
       note.created = input[:content]
-      puts "Created date set"
+      #puts "Created date set"
     when "<tag>"
       note.tags << input[:content]
-      puts "Tag added (#{note.tags.count})"
+      #puts "Tag added (#{note.tags.count})"
     when "<content>"
       while (line = gets.strip) != "</content>"
-        note.content << line
+        note.content << line + "\n"
       end
-      puts "Content saved"
+      #puts "Content saved"
     end 
   end
   return note
@@ -74,18 +74,18 @@ def update_note(notes)
       #reset aggregated values
       note.tags = []
       note.content = ""
-      puts "Note found"
+      #puts "Note found"
     when "<created>"
       note.created = input[:content]
-      puts "Created date set"
+      #puts "Created date set"
     when "<tag>"
       note.tags << input[:content]
-      puts "Tag added (#{note.tags.count})"
+      #puts "Tag added (#{note.tags.count})"
     when "<content>"
       while (line = gets.strip) != "</content>"
-        note.content << line
+        note.content << line + "\n"
       end
-      puts "Content saved"
+      #puts "Content saved"
     end 
   end
   return note
@@ -95,38 +95,55 @@ def search_notes(notes)
   search_term = gets.chomp
   if search_term.start_with?("tag:")
     if search_term.end_with?("*")
-      tag_prefix_search(notes, search_term.sub("tag:","")[0..-2])
+      puts tag_prefix_search(notes, search_term.sub("tag:","")[0..-2])
     else
-      tag_exact_search(notes, search_term.sub("tag:",""))
+      puts tag_exact_search(notes, search_term.sub("tag:",""))
     end
   elsif search_term.start_with?("created:")
-    created_date_search(notes, search_term.sub("created:",""))
+    puts created_date_search(notes, search_term.sub("created:",""))
   elsif search_term.end_with?("*")
-    prefix_search(notes, search_term[0..-2])
+    puts prefix_search(notes, search_term[0..-2])
   else
-    exact_search(notes, search_term)
+    results = []
+    possibles = search_term.split(/\W+/).collect do |term|
+      exact_search(notes, term)
+    end
+    possibles.each do |matches_for_term|
+      if results == []
+        results = matches_for_term
+      else
+        results = results & matches_for_term
+      end
+    end
+    puts results.flatten.sort_by{|note| note.created}.collect {|match| match.guid}.join(",")
   end
 end
 
 #make these class methods, make notes a class variable
 def tag_prefix_search(notes, search_term)
-  puts "Search for tags starting with #{search_term}"
+  "Search for tags starting with #{search_term}"
 end
 
 def tag_exact_search(notes, search_term)
-  puts "Search for tags matching #{search_term}"
+  "Search for tags matching #{search_term}"
 end
 
 def created_date_search(notes, search_term)
-  puts "Search for notes created after #{search_term}"
+  "Search for notes created after #{search_term}"
 end
 
 def prefix_search(notes, search_term)
-  puts "Search for notes with words starting with #{search_term}"
+  "Search for notes with words starting with #{search_term}"
 end
 
 def exact_search(notes, search_term)
-  puts "Search for notes with the word #{search_term}"
+  #binding.pry
+  matches = notes.select {|note| note.has_content?(search_term)}
+  # if matches.any?
+  #   matches.sort_by{|note| note.created}.collect {|match| match.guid}
+  # else
+  #   []
+  # end
 end
 
 def print_notes(notes)
@@ -141,12 +158,12 @@ end
 
 def capture
   notes = []
-  puts "Enter command"
-  while line = gets.chomp
-    case line
+  #puts "Enter command"
+  while line = gets
+    case line.chomp
     when "CREATE"
       notes << create_note
-      puts "Note created; what would you like to do next?"
+      #puts "Note created; what would you like to do next?"
     when "DELETE"
       delete_note(notes)
     when "UPDATE"
@@ -158,7 +175,7 @@ def capture
     end
   end
 
-  print_notes(notes)
+  #print_notes(notes)
 end
 
 capture
