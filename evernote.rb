@@ -1,16 +1,13 @@
-#require 'pry'
 require 'time'
 
 class Note
-  attr_accessor :guid, :tags, :content
-  attr_reader :created, :deleted
-  @@notes = []
-  @@searchable = []
-  @@sorted = false
-
-  def initialize()
-    @@notes << self
-    @@sorted = false
+  attr_accessor :guid, :tags, :content, :deleted
+  attr_reader :created
+  @@notes = {}
+  
+  def initialize(guid)
+    @guid = guid
+    @@notes[guid] = self
     @tags = []
     @content = ""
     @deleted = false
@@ -27,30 +24,15 @@ class Note
   end
 
   def created=(date_string)
-    @@sorted = false
     @created = Time.strptime(date_string,'%Y-%m-%dT%H:%M:%SZ')
   end
 
-  def deleted=(set_deleted)
-    @deleted = set_deleted
-    @@sorted = false
-  end
-
   def self.find_note(guid)
-  @@notes.detect {|note| note.guid == guid}
+    @@notes[guid]
   end
 
   def self.all
-    @@notes
-  end
-
-  def self.searchable
-    if !@@sorted
-      @@sorted = true
-      @@searchable = @@notes.select {|note| !note.deleted}.sort_by{|note| note.created}
-    else
-      @@searchable
-    end
+    @@notes.values
   end
 end
 
@@ -64,13 +46,12 @@ def parse_line(line)
 end
 
 def create_note
-  note = Note.new()
   while (line = gets.chomp) != "</note>"
     input = parse_line(line)
     case input[:tag]
     when "<note>"
     when "<guid>"
-      note.guid = input[:content]
+      note = Note.new(input[:content])
     when "<created>"
       note.created = input[:content]
     when "<tag>"
@@ -145,34 +126,55 @@ end
 
 #make these class methods, make notes a class variable
 def tag_prefix_search(search_term)
-  Note.searchable.collect do |note|
-    note.guid if note.tags.detect { |tag| tag.start_with?(search_term) }
-  end
+  Note.all.collect { |note|
+    if !note.deleted && note.tags.any? && note.tags.detect { |tag| tag.start_with?(search_term) }
+      { :created => note.created, :guid => note.guid }
+    end
+  }.compact
 end
 
 def tag_exact_search(search_term)
-  Note.searchable.collect {|note| note.guid if note.tags.include?(search_term)}
+  Note.all.collect { |note| 
+    if !note.deleted && note.tags.any? && note.tags.include?(search_term)
+      { :created => note.created, :guid => note.guid }
+    end
+  }.compact
 end
 
 def created_date_search(search_term)
   search_date = Time.strptime(search_term,'%Y%m%d')
-  Note.searchable.collect {|note| note.guid if note.created >= search_date}
+  Note.all.collect { |note| 
+    if !note.deleted && note.created >= search_date
+      { :created => note.created, :guid => note.guid }
+    end
+  }.compact
 end
 
 def prefix_search(search_term)
-  Note.searchable.collect {|note| note.guid if note.has_prefix?(search_term)}
+  Note.all.collect { |note| 
+    if !note.deleted && note.has_prefix?(search_term)
+      { :created => note.created, :guid => note.guid }
+    end
+  }.compact
 end
 
 def exact_search(search_term)
-  Note.searchable.collect {|note| note.guid if note.has_content?(search_term) }
+  Note.all.collect { |note| 
+    if !note.deleted && note.has_content?(search_term)
+      { :created => note.created, :guid => note.guid }
+    end
+  }.compact
 end
 
 def format_results(matches)
-  matches.compact.join(",")
+  if matches.any?
+    matches.sort_by {|match| match[:created]}.collect{|sorted_match| sorted_match[:guid]}.join(",")
+  else
+    ""
+  end
 end
 
 def capture
-  notes = []
   while line = gets
     case line.chomp
     when "CREATE"
