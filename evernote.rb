@@ -14,14 +14,13 @@ class Note
   end
 
   def has_content?(content)
-    @content.downcase.split(/\W+/).include?(content)
+    @content.downcase.scan(/[\w']+/).include?(content)
   end
 
   def has_prefix?(prefix)
-    exists = @content.downcase.split(/\W+/).detect do |word|
+    @content.downcase.scan(/[\w']+/).detect do |word|
       word.start_with?(prefix)
     end
-    !!exists
   end
 
   def created=(date_string)
@@ -33,6 +32,10 @@ class Note
   end
 
   def self.all
+    @@notes
+  end
+
+  def self.searchable
     @@notes.select {|note| !note.deleted}
   end
 
@@ -44,7 +47,6 @@ def parse_line(line)
   {
     :tag => line.scan(/<[a-z]*>/).first,
     :content => content
-    #:content => (content = line.scan(/>.*</).first ? content[1..-2] : "")
   }
 end
 
@@ -130,7 +132,7 @@ end
 
 #make these class methods, make notes a class variable
 def tag_prefix_search(search_term)
-  Note.all.select do |note|
+  Note.searchable.select do |note|
     note.tags.detect do |tag|
       tag.start_with?(search_term)
     end
@@ -138,24 +140,28 @@ def tag_prefix_search(search_term)
 end
 
 def tag_exact_search(search_term)
-  Note.all.select {|note| note.tags.include?(search_term)}
+  Note.searchable.select {|note| note.tags.include?(search_term)}
 end
 
 def created_date_search(search_term)
   search_date = Time.strptime(search_term,'%Y%m%d')
-  Note.all.select {|note| note.created > search_date}
+  Note.searchable.select {|note| note.created >= search_date}
 end
 
 def prefix_search(search_term)
-  Note.all.select {|note| note.has_prefix?(search_term)}
+  Note.searchable.select {|note| note.has_prefix?(search_term)}
 end
 
 def exact_search(search_term)
-  Note.all.select {|note| note.has_content?(search_term)}
+  Note.searchable.select {|note| note.has_content?(search_term)}
 end
 
 def format_results(matches)
-  matches.sort_by{|note| note.created}.collect {|match| match.guid}.join(",")
+  if matches.any?
+    matches.sort_by{|note| note.created}.collect {|match| match.guid}.join(",")
+  else
+    ""
+  end
 end
 
 def capture
