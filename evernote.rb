@@ -2,12 +2,15 @@
 require 'time'
 
 class Note
-  attr_accessor :guid, :tags, :content, :deleted
-  attr_reader :created
+  attr_accessor :guid, :tags, :content
+  attr_reader :created, :deleted
   @@notes = []
+  @@searchable = []
+  @@sorted = false
 
   def initialize()
     @@notes << self
+    @@sorted = false
     @tags = []
     @content = ""
     @deleted = false
@@ -24,7 +27,13 @@ class Note
   end
 
   def created=(date_string)
+    @@sorted = false
     @created = Time.strptime(date_string,'%Y-%m-%dT%H:%M:%SZ')
+  end
+
+  def deleted=(set_deleted)
+    @deleted = set_deleted
+    @@sorted = false
   end
 
   def self.find_note(guid)
@@ -36,9 +45,13 @@ class Note
   end
 
   def self.searchable
-    @@notes.select {|note| !note.deleted}
+    if !@@sorted
+      @@sorted = true
+      @@searchable = @@notes.select {|note| !note.deleted}.sort_by{|note| note.created}
+    else
+      @@searchable
+    end
   end
-
 end
 
 def parse_line(line)
@@ -132,36 +145,30 @@ end
 
 #make these class methods, make notes a class variable
 def tag_prefix_search(search_term)
-  Note.searchable.select do |note|
-    note.tags.detect do |tag|
-      tag.start_with?(search_term)
-    end
+  Note.searchable.collect do |note|
+    note.guid if note.tags.detect { |tag| tag.start_with?(search_term) }
   end
 end
 
 def tag_exact_search(search_term)
-  Note.searchable.select {|note| note.tags.include?(search_term)}
+  Note.searchable.collect {|note| note.guid if note.tags.include?(search_term)}
 end
 
 def created_date_search(search_term)
   search_date = Time.strptime(search_term,'%Y%m%d')
-  Note.searchable.select {|note| note.created >= search_date}
+  Note.searchable.collect {|note| note.guid if note.created >= search_date}
 end
 
 def prefix_search(search_term)
-  Note.searchable.select {|note| note.has_prefix?(search_term)}
+  Note.searchable.collect {|note| note.guid if note.has_prefix?(search_term)}
 end
 
 def exact_search(search_term)
-  Note.searchable.select {|note| note.has_content?(search_term)}
+  Note.searchable.collect {|note| note.guid if note.has_content?(search_term) }
 end
 
 def format_results(matches)
-  if matches.any?
-    matches.sort_by{|note| note.created}.collect {|match| match.guid}.join(",")
-  else
-    ""
-  end
+  matches.compact.join(",")
 end
 
 def capture
