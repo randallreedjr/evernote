@@ -53,13 +53,16 @@ def create_note
     when "<guid>"
       note = Note.new(input[:content])
     when "<created>"
-      note.created = input[:content]
+      note.created = input[:content] if note
     when "<tag>"
-      note.tags << input[:content]
+      note.tags << input[:content] if note
     when "<content>"
-      while (line = gets.strip) != "</content>"
-        note.content << line + "\n"
+      if note
+        while (line = gets.strip) != "</content>"
+          note.content << line + "\n"
+        end
       end
+    else
     end 
   end
   return note
@@ -84,13 +87,16 @@ def update_note
       note.tags = []
       note.content = ""
     when "<created>"
-      note.created = input[:content]
+      note.created = input[:content] if note
     when "<tag>"
-      note.tags << input[:content]
+      note.tags << input[:content] if note
     when "<content>"
-      while (line = gets.strip) != "</content>"
-        note.content << line + "\n"
+      if note
+        while (line = gets.strip) != "</content>"
+          note.content << line + "\n"
+        end
       end
+    else
     end 
   end
   return note
@@ -114,11 +120,7 @@ def search_notes
       possibles = exact_search(search_term)
     end
 
-    if results == []
-      results = possibles
-    else
-      results = results & possibles
-    end
+    results == [] ? results = possibles : results = results & possibles
   end
 
   puts format_results(results.flatten)
