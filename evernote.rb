@@ -130,8 +130,11 @@ end
 
 #make these class methods, make notes a class variable
 def tag_prefix_search(search_term)
-  "Search for tags starting with #{search_term}"
-  []
+  Note.all.select do |note|
+    note.tags.detect do |tag|
+      tag.start_with?(search_term)
+    end
+  end
 end
 
 def tag_exact_search(search_term)
